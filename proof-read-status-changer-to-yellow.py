@@ -3,6 +3,7 @@
 import datetime
 import logging
 import os
+import re
 import sys
 import time
 
@@ -67,35 +68,22 @@ else:
     sys.exit()
 
 
-def check_for_bot(username):
-    user = wikitools.User(wiki, username)
-    if 'bot' in user.groups:
-        return "True"
-
-
-logging.info("Checking for bot access rights")
-bot_flag = check_for_bot(wiki_username)
-
-if bot_flag:
-    logging.info("The user " + wiki_username + " has bot access.")
-else:
-    logging.info("The user " + wiki_username + " does not have bot access")
-
-
 def change_status(pagename):
     page = wikitools.Page(wiki, "Page:" + pagename, followRedir=True)
     print page
 
     logging.info("Editing " + "https://" + wikisource_language + ".wikisource.org/wiki/" + page.title)
     content = page.getWikiText()
-
     new_content = content.replace('pagequality level="2"', 'pagequality level="3"')
-
     if new_content != content:
-        page.edit(text=new_content, summary="[[বিষয়শ্রেণী:বৈধকরণ]]")
-        logging.info("Changed level to 4")
+
+        new_content_us = re.sub(r'user=".*"', 'user="' + wiki_username + '"', new_content)
+        if new_content_us == new_content:
+            new_content_us = new_content.replace('pagequality level="3"', 'pagequality level="3" user="' + wiki_username + '"')
+        page.edit(text=new_content_us, summary="বৈধকরণ")
+        logging.info("Changed level to 3")
     else:
-        logging.info("Page is not currently at level 3")
+        logging.info("Page is not currently at level 2")
 
 
 def to_bn(num):
@@ -118,5 +106,5 @@ while counter <= int(lpage):
     change_status(filename.strip() + "/" + to_bn(counter))
 
     counter = counter + 1
-    print counter
+    time.sleep(15)
 

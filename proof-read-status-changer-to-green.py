@@ -3,6 +3,7 @@
 import datetime
 import logging
 import os
+import re
 import sys
 import time
 
@@ -65,7 +66,7 @@ else:
     message = "Invalid username or password error"
     logging.info(message)
     sys.exit()
-    
+
 
 def change_status(pagename):
     page = wikitools.Page(wiki, "Page:" + pagename, followRedir=True)
@@ -73,11 +74,13 @@ def change_status(pagename):
 
     logging.info("Editing " + "https://" + wikisource_language + ".wikisource.org/wiki/" + page.title)
     content = page.getWikiText()
-
     new_content = content.replace('pagequality level="3"', 'pagequality level="4"')
-
     if new_content != content:
-        page.edit(text=new_content, summary="[[বিষয়শ্রেণী:বৈধকরণ]]")
+
+        new_content_us = re.sub(r'user=".*"', 'user="' + wiki_username + '"', new_content)
+        if new_content_us == new_content:
+            new_content_us = new_content.replace('pagequality level="4"', 'pagequality level="4" user="' + wiki_username + '"')
+        page.edit(text=new_content_us, summary="বৈধকরণ")
         logging.info("Changed level to 4")
     else:
         logging.info("Page is not currently at level 3")
@@ -103,5 +106,5 @@ while counter <= int(lpage):
     change_status(filename.strip() + "/" + to_bn(counter))
 
     counter = counter + 1
-    print counter
+    time.sleep(15)
 
