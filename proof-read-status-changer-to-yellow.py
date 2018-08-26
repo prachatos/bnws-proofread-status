@@ -1,41 +1,36 @@
 # -*- coding: utf-8 -*-
 
-import os
-import shutil
-import sys
-import ConfigParser
-import time
 import datetime
-import glob
-import urllib
 import logging
-import urllib2
+import os
+import sys
+import time
+
+import ConfigParser
+
 import wikitools
-import poster
 
 config = ConfigParser.ConfigParser()
 config.read("config.ini")
 
-wiki_username = config.get('settings','wiki_username')
-wiki_password = config.get('settings','wiki_password')
-wikisource_language = config.get('settings','wikisource_language')
+wiki_username = config.get('settings', 'wiki_username')
+wiki_password = config.get('settings', 'wiki_password')
+wikisource_language = config.get('settings', 'wikisource_language')
+fpage = config.get('settings', 'pagefirst')
+lpage = config.get('settings', 'pagelast')
+book = config.get('settings', 'book_name')
 
 wiki_url = "https://" + wikisource_language + ".wikisource.org/w/api.php"
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
 ts = time.time()
-timestamp  = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
-
+timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
 
 if not os.path.isdir("./log"):
-            os.mkdir("./log")
-
-
+    os.mkdir("./log")
 
 # create a file handler
 log_file = './log/proofread-status-change_' + timestamp + '_log.txt'
@@ -52,84 +47,76 @@ handler.setFormatter(formatter)
 
 logger.addHandler(handler)
 
-
 try:
-            wiki = wikitools.wiki.Wiki(wiki_url)
+    wiki = wikitools.wiki.Wiki(wiki_url)
 except:
-            message =  "Can not connect with wiki. Check the URL"
-            logger.info(message)
+    message = "Can not connect with wiki. Check the URL"
+    logger.info(message)
+    sys.exit()
 
-login_result = wiki.login(username=wiki_username,password=wiki_password)
-message =  "Login Status = " + str(login_result)
+login_result = wiki.login(username=wiki_username, password=wiki_password)
+message = "Login Status = " + str(login_result)
 logging.info(message)
 
-
-if login_result == True:
-        message =  "\n\nLogged in to "  +  wiki_url.split('/w')[0]
-        logging.info(message)
+if login_result:
+    message = "\n\nLogged in to " + wiki_url.split('/w')[0]
+    logging.info(message)
 else:
-        message =  "Invalid username or password error"
-        logging.info(message)
-        sys.exit()
+    message = "Invalid username or password error"
+    logging.info(message)
+    sys.exit()
+
 
 def check_for_bot(username):
-        user = wikitools.User(wiki,username)
-        if 'bot' in user.groups:
-                return "True"
+    user = wikitools.User(wiki, username)
+    if 'bot' in user.groups:
+        return "True"
+
 
 logging.info("Checking for bot access rights")
 bot_flag = check_for_bot(wiki_username)
 
 if bot_flag:
-            logging.info("The user " + wiki_username + " has bot access.")
+    logging.info("The user " + wiki_username + " has bot access.")
 else:
-            logging.info("The user " + wiki_username + " does not have bot access")
+    logging.info("The user " + wiki_username + " does not have bot access")
 
 
 def change_status(pagename):
+    page = wikitools.Page(wiki, "Page:" + pagename, followRedir=True)
+    print page
 
-	page = wikitools.Page(wiki,"Page:"+ pagename, followRedir=True)
-        print page
+    logging.info("Editing " + "https://" + wikisource_language + ".wikisource.org/wiki/" + page.title)
+    content = page.getWikiText()
 
+    new_content = content.replace('pagequality level="2"', 'pagequality level="3"')
 
-	logging.info("Editing " + "https://ta.wikisource.org/wiki/"+page.title)
-	content =  page.getWikiText()
-
-	
-	list_of_words = content.split()
-
-	wiki_username_string = 'user=' + '"' + wiki_username + '"'
-#	print wiki_username_string
-
-	for n,i in enumerate(list_of_words):
-        	if "user=" in i:
-                	list_of_words[n] = wiki_username_string
-
-	content1 = ' '.join(list_of_words)
+    if new_content != content:
+        page.edit(text=new_content, summary="[[বিষয়শ্রেণী:বৈধকরণ]]")
+        logging.info("Changed level to 4")
+    else:
+        logging.info("Page is not currently at level 3")
 
 
-	new_content = content1.replace('pagequality level="1"','pagequality level="3"')
+def to_bn(num):
+    bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
+    ans = ''
+    if int(num) < 10: return bn[int(num)]
+    while int(num) > 0:
+        ans = bn[int(num) % 10] + ans
+        num = str(int(int(num) / 10))
+    return ans
 
 
-	page.edit(text = new_content,summary = "[[பகுப்பு:மெய்ப்புப் பார்க்கப்பட்டவை]]")
-	
+counter = int(fpage)
 
+while counter <= int(lpage):
+    logging.info("Page no = " + str(counter))
 
-        logging.info("Changed level 1 to 3")
-        
-book = open("book-names.txt","r")
+    filename = book.split("File:")[1]
 
-counter = 1
+    change_status(filename.strip() + "/" + to_bn(counter))
 
-for line in book:
-	
-	logging.info("Book No = " + str(counter))
-	
-	filename = line.split("File:")[1]
+    counter = counter + 1
+    print counter
 
-        change_status(filename.strip()+"/1")
-
-	counter = counter + 1
-
-
-logging.info("Completed!")
