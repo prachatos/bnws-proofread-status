@@ -89,7 +89,7 @@ def change_status(pagename):
     logging.info("Editing " + "https://" + wikisource_language + ".wikisource.org/wiki/" + page.title)
     content = page.getWikiText()
 
-    new_content = content.replace('pagequality level="1"', 'pagequality level="2"')
+    new_content = content.replace('pagequality level="3"', 'pagequality level="4"')
 
     if new_content != content:
         page.edit(text=new_content, summary="[[বিষয়শ্রেণী:বৈধকরণ]]")
