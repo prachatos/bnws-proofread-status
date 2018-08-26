@@ -65,22 +65,7 @@ else:
     message = "Invalid username or password error"
     logging.info(message)
     sys.exit()
-
-
-def check_for_bot(username):
-    user = wikitools.User(wiki, username)
-    if 'bot' in user.groups:
-        return "True"
-
-
-logging.info("Checking for bot access rights")
-bot_flag = check_for_bot(wiki_username)
-
-if bot_flag:
-    logging.info("The user " + wiki_username + " has bot access.")
-else:
-    logging.info("The user " + wiki_username + " does not have bot access")
-
+    
 
 def change_status(pagename):
     page = wikitools.Page(wiki, "Page:" + pagename, followRedir=True)
