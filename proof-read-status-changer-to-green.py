@@ -79,7 +79,8 @@ def change_status(pagename):
 
         new_content_us = re.sub(r'user=".*"', 'user="' + wiki_username + '"', new_content)
         if new_content_us == new_content:
-            new_content_us = new_content.replace('pagequality level="4"', 'pagequality level="4" user="' + wiki_username + '"')
+            new_content_us = new_content.replace('pagequality level="4"', 'pagequality level="4" user="' +
+                                                 wiki_username + '"').replace('<noinclude>', '')
         page.edit(text=new_content_us, summary="বৈধকরণ")
         logging.info("Changed level to 4")
     else:
